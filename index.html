@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OS-FM · Kredity & fakturační podklady</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  /* Filipesmedia Brand v1.0 — sekce 3.2 brand manuálu
+     TODO: FM Red má v manuálu [TODO] – ověřit s grafikou. Použit placeholder #DC2626. */
+  :root{
+    --fm-black:    #000000;   /* FM Black – logo, headline */
+    --fm-white:    #ffffff;   /* FM White */
+    --fm-red:      #DC2626;   /* FM Red – accent, CTA, zvýraznění čísel (PLACEHOLDER – ověřit s grafikou) */
+    --fm-red-dark: #b91c1c;   /* hover */
+    --fm-red-bg:   #fef2f2;   /* light tint pro accent backgrounds */
+    --fm-grey-90:  #1A1A1A;   /* body text */
+    --fm-grey-50:  #7A7A7A;   /* secondary text */
+    --fm-grey-10:  #F2F2F2;   /* pozadí sekcí, oddělovače */
+    --fm-grey-20:  #e5e5e5;   /* borders */
+    --fm-bg:       var(--fm-grey-10);
+    --fm-card:     var(--fm-white);
+    --fm-text:     var(--fm-grey-90);
+    --fm-mute:     var(--fm-grey-50);
+    --fm-line:     var(--fm-grey-20);
+  }
+  body{ background: var(--fm-bg); color: var(--fm-text); font-family:'Inter', -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-feature-settings:"ss01"; letter-spacing:-0.005em; }
+  .card{ background: var(--fm-card); border:1px solid var(--fm-line); border-radius: 6px; }
+  .pill{ display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .65rem; border-radius:999px; font-size:.72rem; font-weight:600; letter-spacing:.02em; }
+  .num{ font-feature-settings:"tnum" 1, "lnum" 1; font-variant-numeric: tabular-nums; }
+  .mono{ font-family:'JetBrains Mono', ui-monospace, "SFMono-Regular", Menlo, monospace; font-feature-settings:"tnum" 1; }
+  .btn{ padding:.55rem 1.05rem; border-radius:4px; font-weight:600; font-size:.85rem; transition: all .12s ease; cursor:pointer; border:1px solid transparent; letter-spacing:.005em; }
+  .btn-primary{ background: var(--fm-black); color:#fff; }
+  .btn-primary:hover{ background:#222; }
+  .btn-accent{ background: var(--fm-red); color:#fff; }
+  .btn-accent:hover{ background: var(--fm-red-dark); }
+  .btn-ghost{ background:#fff; border:1px solid var(--fm-line); color:var(--fm-text); }
+  .btn-ghost:hover{ background: var(--fm-grey-10); border-color:#d4d4d4; }
+  select, input{ background:#fff; border:1px solid var(--fm-line); color: var(--fm-text); border-radius:4px; padding:.42rem .7rem; font-size:.86rem; font-family: inherit; }
+  select:focus, input:focus{ outline: 2px solid rgba(220,38,38,.18); border-color: var(--fm-red); }
+  .tab{ padding:.45rem .9rem; border-radius:4px; font-size:.82rem; color:var(--fm-grey-50); cursor:pointer; border:1px solid transparent; font-weight:500; }
+  .tab:hover{ color: var(--fm-grey-90); }
+  .tab.active{ background: var(--fm-black); color:#fff; border-color: var(--fm-black); font-weight:600; }
+  .month-card{ background:#fff; border:1px solid var(--fm-line); border-radius:6px; padding:1rem 1.1rem 1.1rem; }
+  .month-card h4{ font-size:.95rem; font-weight:600; color: var(--fm-grey-90); margin:0 0 .15rem 0; letter-spacing:-0.01em;}
+  .month-card .sub{ font-size:.72rem; color: var(--fm-mute); text-transform: uppercase; letter-spacing:.06em; margin-bottom:.7rem; font-weight:500;}
+  table.platform-table{ width:100%; border-collapse: collapse; }
+  table.platform-table thead th{ font-size:.68rem; font-weight:600; color: var(--fm-mute); text-transform: uppercase; letter-spacing:.06em; text-align: right; padding:.45rem .4rem; border-bottom: 1px solid var(--fm-line); }
+  table.platform-table thead th:first-child{ text-align: left; }
+  table.platform-table tbody td{ padding:.5rem .4rem; font-size:.88rem; border-bottom: 1px solid var(--fm-grey-10); }
+  table.platform-table tbody td.right{ text-align: right; font-variant-numeric: tabular-nums; }
+  table.platform-table tfoot td{ padding:.6rem .4rem; font-size:.9rem; font-weight:700; border-top: 1.5px solid var(--fm-grey-90); }
+  table.platform-table tfoot td.right{ text-align: right; font-variant-numeric: tabular-nums; }
+  .platform-dot{ display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:.5rem; vertical-align:middle; }
+  .merg-input{ width: 90px; text-align: right; padding:.25rem .5rem; font-size:.86rem; }
+  .fm-wordmark{ font-weight:700; letter-spacing:.04em; color: var(--fm-black); font-size:.92rem;}
+  .fm-wordmark .dot{ display:inline-block; width:6px; height:6px; background: var(--fm-red); border-radius:50%; margin-left:3px; vertical-align: 2px; }
+  h1, h2, h3, h4 { letter-spacing:-0.015em; }
+  .kpi-accent { color: var(--fm-red); }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="max-w-7xl mx-auto px-6 py-7">
+
+  <!-- TOP BAR -->
+  <header class="flex items-center justify-between mb-7">
+    <div class="flex items-center gap-4">
+      <div class="fm-wordmark">FILIPESMEDIA<span class="dot"></span></div>
+      <div style="width:1px; height:28px; background: var(--fm-line);"></div>
+      <div>
+        <div class="text-xs uppercase" style="color:var(--fm-mute); letter-spacing:.08em; font-weight:500;">OS-FM · modul</div>
+        <h1 class="text-xl font-semibold" style="color: var(--fm-black);">Kredity &amp; fakturační podklady</h1>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="pill" style="background: var(--fm-grey-10); color: var(--fm-grey-90);"><span style="width:6px;height:6px;border-radius:50%;background:var(--fm-red);display:inline-block;"></span>Zdroj: Google Sheets · sync <span id="lastSync">11. 5. 2026</span></span>
+      <button class="btn btn-ghost" onclick="alert('Otevře nastavení sazeb a limitů pro klienta.')">⚙ Nastavení</button>
+    </div>
+  </header>
+
+  <!-- FILTERS -->
+  <section class="card p-4 mb-5 flex flex-wrap items-center gap-3">
+    <div class="flex items-center gap-2">
+      <label class="text-sm" style="color:var(--fm-mute)">Klient</label>
+      <select id="clientSelect">
+        <option>Šrouby.net</option>
+        <option disabled>— další klienti dle config.json —</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="tab active" id="tabQuarter" onclick="switchMode('quarter')">Kvartální podklad <span style="opacity:.7">· fakturace</span></span>
+      <span class="tab" id="tabMonth" onclick="switchMode('month')">Měsíční přehled <span style="opacity:.7">· FYI</span></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <label class="text-sm" style="color:var(--fm-mute)">Období</label>
+      <select id="periodSelect">
+        <option value="Q2-2026" selected>Q2 / 2026 (probíhá · duben–červen)</option>
+        <option value="Q1-2026">Q1 / 2026 (uzavřeno · 44 596 Kč)</option>
+        <option value="Q4-2025">Q4 / 2025</option>
+        <option value="Q3-2026">Q3 / 2026</option>
+        <option value="Q4-2026">Q4 / 2026</option>
+      </select>
+      <select id="monthSelect" style="display:none;">
+        <option value="2026-05">Květen 2026 (probíhá k 11. 5.)</option>
+        <option value="2026-04" selected>Duben 2026 (uzavřeno)</option>
+        <option value="2026-03">Březen 2026</option>
+        <option value="2026-02">Únor 2026</option>
+        <option value="2026-01">Leden 2026</option>
+        <option value="2025-12">Prosinec 2025</option>
+        <option value="2025-11">Listopad 2025</option>
+        <option value="2025-10">Říjen 2025</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- KPI CARDS -->
+  <section class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+    <div class="card p-4">
+      <div class="text-xs uppercase tracking-widest" style="color:var(--fm-mute); font-weight:600;">Spend (kredity)</div>
+      <div class="text-2xl font-semibold num mt-2 mono" id="kpiSpend">— Kč</div>
+      <div class="text-xs mt-1" style="color:var(--fm-mute)">Reálné strhnutí z karty</div>
+    </div>
+    <div class="card p-4">
+      <div class="text-xs uppercase tracking-widest" style="color:var(--fm-mute); font-weight:600;">Agenturní markup</div>
+      <div class="text-2xl font-semibold num mt-2 mono" id="kpiFee">— Kč</div>
+      <div class="text-xs mt-1" style="color:var(--fm-mute)">10 % z kreditů</div>
+    </div>
+    <div class="card p-4">
+      <div class="text-xs uppercase tracking-widest" style="color:var(--fm-mute); font-weight:600;">Agenturní práce</div>
+      <div class="text-2xl font-semibold num mt-2 mono" id="kpiAgency">— Kč</div>
+      <div class="text-xs mt-1" style="color:var(--fm-mute)" id="kpiAgencySub">Správa kampaní za období</div>
+    </div>
+    <div class="card p-4" style="border:2px solid var(--fm-red); background: var(--fm-red-bg);">
+      <div class="text-xs uppercase tracking-widest" style="color: var(--fm-red); font-weight:600;">K fakturaci celkem</div>
+      <div class="text-2xl font-semibold num mt-2 mono kpi-accent" id="kpiInvoice">— Kč</div>
+      <div class="text-xs mt-1" style="color:var(--fm-mute)">Kredity + markup + Mergado + práce</div>
+    </div>
+    <div class="card p-4">
+      <div class="text-xs uppercase tracking-widest" style="color:var(--fm-mute); font-weight:600;">Měsíců v období</div>
+      <div class="text-2xl font-semibold mt-2 mono" id="kpiMonths">—</div>
+      <div class="text-xs mt-1" style="color:var(--fm-mute)" id="kpiMonthsSub">—</div>
+    </div>
+  </section>
+
+  <!-- MATRIX TABULKA — platforma × měsíc (HLAVNÍ POHLED) -->
+  <section class="card p-5 mb-5" style="overflow-x:auto;">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="text-sm font-semibold">Přehled per platforma · rozpad na měsíce</div>
+        <div class="text-xs" style="color:var(--fm-mute)">Řádky = platformy · Sloupce = měsíce v kvartálu · vč. rozpočtu a čerpání</div>
+      </div>
+      <div class="text-xs pill" style="background: var(--fm-grey-10); color: var(--fm-grey-90);">Referenční rozpočty</div>
+    </div>
+    <table class="platform-table" id="matrixTable">
+      <thead id="matrixHead"></thead>
+      <tbody id="matrixBody"></tbody>
+      <tfoot id="matrixFoot"></tfoot>
+    </table>
+  </section>
+
+  <!-- PER-PLATFORMA DETAIL — 3 karty per měsíc (zachováno) -->
+  <section class="mb-5">
+    <div class="flex items-center justify-between mb-3">
+      <div>
+        <div class="text-sm font-semibold">Per-platforma detail · po měsících</div>
+        <div class="text-xs" style="color:var(--fm-mute)">Každý měsíc kvartálu zvlášť · spend, sazba, částka k fakturaci</div>
+      </div>
+    </div>
+    <div id="monthsGrid" class="grid grid-cols-1 lg:grid-cols-3 gap-4"></div>
+  </section>
+
+  <!-- ROZPAD K FAKTURACI (donut) -->
+  <section class="card p-5 mb-5">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="text-sm font-semibold">Rozpad k fakturaci</div>
+        <div class="text-xs" style="color:var(--fm-mute)">Podíl jednotlivých platforem na celkové fakturované částce</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+      <div><canvas id="donutChart" height="180"></canvas></div>
+      <div id="donutLegend" class="space-y-2 text-sm"></div>
+    </div>
+  </section>
+
+  <!-- KONFIGURÁTOR – všechny manuální vstupy úplně dole -->
+  <section class="card p-5 mb-10">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <div class="text-sm font-semibold">Konfigurátor · rozpočty a Mergado</div>
+        <div class="text-xs" style="color:var(--fm-mute)">Měsíční hodnoty, lze přepsat. Změna se okamžitě promítne do tabulky, donutu, PDF i emailu.</div>
+      </div>
+      <button class="btn btn-ghost text-xs" onclick="resetBudgets()">↺ Reset na defaulty</button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3" id="configGrid"></div>
+    <div class="mt-3 text-xs" style="color:var(--fm-mute);">
+      Defaulty Q2/26: <b>Rozpočty</b> Google+Sklik 15 000 Kč/m (split 75/25 = 11 000 / 4 000), Meta 9 000 Kč/m, Mergado 586 Kč/m fix. <b>Agenturní práce</b> Google+Sklik 12 400 Kč/m, Meta 3 000 Kč/m.
+    </div>
+  </section>
+
+  <footer class="pb-10 pt-2 mt-4 flex items-center justify-between text-xs" style="color:var(--fm-mute); border-top:1px solid var(--fm-line);">
+    <div class="flex items-center gap-3 pt-3">
+      <span class="fm-wordmark" style="font-size:.78rem; opacity:.85;">FILIPESMEDIA<span class="dot"></span></span>
+      <span style="opacity:.7;">Generated by Filipesmedia · OS-FM modul Kredity v0.3 · daily sync z cost importu</span>
+    </div>
+    <div class="pt-3" style="opacity:.7;">Allfred: [interní odkaz]</div>
+  </footer>
+</div>
+
+<script>
+/* =========================================================
+   KONFIGURACE
+   ========================================================= */
+const config = {
+  klient: "Šrouby.net",
+  klient_jmeno: "—",
+  klient_email: "",
+  manazer: "Account Manager",
+  manazer_email: "",
+  platformy: {
+    "Google Ads":    { sazba:"percent", value:0.10, color:"#4285F4" },
+    "Sklik":         { sazba:"percent", value:0.10, color:"#CC0000" },
+    "Meta":          { sazba:"percent", value:0.10, color:"#1877F2" },
+    "Mergado":       { sazba:"fixed",   value:586,  color:"#1A1A1A" }, // value se přepisuje z inputu
+  }
+};
+
+/* Měsíční rozpočty per platforma — Q2/26.
+   Default split G/S 75/25 z 15 000 Kč/m. Editovatelné v konfigurátoru dole. */
+const defaultBudgets = {
+  "Google Ads": 11000,
+  "Sklik":      4000,
+  "Meta":       9000,
+  "Mergado":    586,
+};
+let budgets = { ...defaultBudgets };
+
+/* Agenturní práce / správa kampaní (měsíční sazby).
+   "3 měsíce správy kampaní" = 37 200 / 3 = 12 400 Kč/m (Google+Sklik)
+   "3 měsíce správa Facebook" = 9 000 / 3 = 3 000 Kč/m (Meta) */
+const defaultAgencyWork = {
+  "Správa Google Ads + Sklik": 12400,
+  "Správa Meta":               3000,
+};
+let agencyWork = { ...defaultAgencyWork };
+
+/* =========================================================
+   DATA — reálné agregace z cost importu (Google Sheets)
+   ========================================================= */
+const spends = [
+  // Q4 / 2025
+  { platforma:"Google Ads", obdobi:"2025-10", spend:9617.67 },
+  { platforma:"Google Ads", obdobi:"2025-11", spend:9580.11 },
+  { platforma:"Google Ads", obdobi:"2025-12", spend:9740.29 },
+  { platforma:"Sklik",      obdobi:"2025-10", spend:3339.52 },
+  { platforma:"Sklik",      obdobi:"2025-11", spend:1954.07 },
+  { platforma:"Sklik",      obdobi:"2025-12", spend:3262.34 },
+  // Q1 / 2026 (uzavřený, fakturováno)
+  { platforma:"Google Ads", obdobi:"2026-01", spend:9746.12 },
+  { platforma:"Google Ads", obdobi:"2026-02", spend:9698.50 },
+  { platforma:"Google Ads", obdobi:"2026-03", spend:9857.05 },
+  { platforma:"Sklik",      obdobi:"2026-01", spend:1677.93 },
+  { platforma:"Sklik",      obdobi:"2026-02", spend:4068.59 },
+  { platforma:"Sklik",      obdobi:"2026-03", spend:3895.11 },
+  // Q2 / 2026 (probíhá)
+  { platforma:"Google Ads", obdobi:"2026-04", spend:9785.24 },
+  { platforma:"Google Ads", obdobi:"2026-05", spend:3450.63 },   // partial k 11.5.
+  { platforma:"Sklik",      obdobi:"2026-04", spend:3948.67 },
+  { platforma:"Sklik",      obdobi:"2026-05", spend:774.63 },    // partial
+  { platforma:"Meta",       obdobi:"2026-04", spend:3051.97 },   // od dubna 2026
+  { platforma:"Meta",       obdobi:"2026-05", spend:4819.29 },   // partial
+];
+
+const periodMonths = {
+  "Q4-2025":["2025-10","2025-11","2025-12"],
+  "Q1-2026":["2026-01","2026-02","2026-03"],
+  "Q2-2026":["2026-04","2026-05","2026-06"],
+  "Q3-2026":["2026-07","2026-08","2026-09"],
+  "Q4-2026":["2026-10","2026-11","2026-12"],
+};
+const monthLabel = { "2026-01":"Leden","2026-02":"Únor","2026-03":"Březen","2026-04":"Duben","2026-05":"Květen","2026-06":"Červen","2026-07":"Červenec","2026-08":"Srpen","2026-09":"Září","2026-10":"Říjen","2026-11":"Listopad","2026-12":"Prosinec","2025-10":"Říjen","2025-11":"Listopad","2025-12":"Prosinec" };
+
+/* ========== logika výpočtu ========== */
+function mergadoValue(){ return budgets["Mergado"] || 586; }
+function budgetFor(platforma){ return budgets[platforma] != null ? budgets[platforma] : 0; }
+function agencyMonthlyTotal(){ return Object.values(agencyWork).reduce((a,b)=> a + (Number(b)||0), 0); }
+function agencyTotal(months){ return agencyMonthlyTotal() * months; }
+
+function invoiceFor(platforma, spend){
+  const p = config.platformy[platforma];
+  if(!p) return spend;
+  if(p.sazba === "percent") return Math.round(spend * (1 + p.value));
+  if(p.sazba === "fixed"){
+    if(platforma === "Mergado") return mergadoValue();
+    return p.value;
+  }
+  return spend;
+}
+function spendDisplay(platforma, spend){
+  // Pro Mergado zobrazujeme aktuální nastavenou částku
+  if(platforma === "Mergado") return mergadoValue();
+  return spend;
+}
+function rateLabel(platforma){
+  const p = config.platformy[platforma];
+  if(!p) return "—";
+  if(p.sazba === "percent") return "× " + (1+p.value).toFixed(2);
+  if(p.sazba === "fixed")   return "fix";
+  return "—";
+}
+function fmtKc(n){
+  if(n == null) return "—";
+  return Math.round(n).toLocaleString("cs-CZ") + " Kč";
+}
+
+/* ========== mode toggle ========== */
+let mode = "quarter";
+function switchMode(m){
+  mode = m;
+  document.getElementById("tabQuarter").classList.toggle("active", m==="quarter");
+  document.getElementById("tabMonth").classList.toggle("active",   m==="month");
+  document.getElementById("periodSelect").style.display = m==="quarter" ? "" : "none";
+  document.getElementById("monthSelect").style.display  = m==="month"   ? "" : "none";
+  render();
+}
+
+/* ========== render ========== */
+let donutChart;
+
+function currentMonths(){
+  if(mode === "quarter"){
+    const period = document.getElementById("periodSelect").value;
+    return periodMonths[period];
+  }
+  return [ document.getElementById("monthSelect").value ];
+}
+
+// Najde všechny řádky aktivních platforem v daných měsících + doplní Mergado
+function rowsForMonths(months){
+  const rows = spends.filter(s=> months.includes(s.obdobi));
+  // Přidat Mergado pro každý měsíc (jeho hodnota se počítá z inputu)
+  const platformsInData = [...new Set(rows.map(r=>r.platforma))];
+  const out = [...rows];
+  months.forEach(m=>{
+    out.push({ platforma:"Mergado", obdobi:m, spend: mergadoValue() });
+  });
+  return out;
+}
+
+function render(){
+  const months = currentMonths();
+  const rows = rowsForMonths(months);
+
+  // KPI
+  const totalSpend = rows.reduce((a,r)=> a + spendDisplay(r.platforma, r.spend), 0);
+  const totalCreditsInvoice = rows.reduce((a,r)=> a + invoiceFor(r.platforma, r.spend), 0);
+  const totalFee = totalCreditsInvoice - totalSpend;
+  const totalAgency = agencyTotal(months.length);
+  const totalInvoice = totalCreditsInvoice + totalAgency;
+  document.getElementById("kpiSpend").textContent = fmtKc(totalSpend);
+  document.getElementById("kpiFee").textContent = fmtKc(totalFee);
+  document.getElementById("kpiAgency").textContent = fmtKc(totalAgency);
+  document.getElementById("kpiAgencySub").textContent = `${fmtKc(agencyMonthlyTotal())} / měsíc × ${months.length}`;
+  document.getElementById("kpiInvoice").textContent = fmtKc(totalInvoice);
+  document.getElementById("kpiMonths").textContent = months.length;
+  document.getElementById("kpiMonthsSub").textContent = months.map(m=>monthLabel[m] || m).join(" · ");
+
+  // Donut chart — invoice per platform
+  const platforms = [...new Set(rows.map(r=>r.platforma))];
+  const donutLabels = platforms;
+  const donutData = platforms.map(pl=> rows.filter(r=>r.platforma===pl).reduce((a,r)=> a + invoiceFor(pl, r.spend), 0));
+  const donutColors = platforms.map(pl=> (config.platformy[pl]||{}).color || "#888");
+  if(donutChart) donutChart.destroy();
+  donutChart = new Chart(document.getElementById("donutChart"), {
+    type:"doughnut",
+    data:{ labels: donutLabels, datasets:[{ data: donutData, backgroundColor: donutColors, borderWidth:1, borderColor:"#fff" }] },
+    options:{ plugins:{ legend:{ display:false } }, cutout:"64%" }
+  });
+  // Legend
+  const legend = document.getElementById("donutLegend");
+  legend.innerHTML = "";
+  const totalForPct = donutData.reduce((a,b)=>a+b,0) || 1;
+  donutLabels.forEach((l,i)=>{
+    const pct = ((donutData[i]/totalForPct)*100).toFixed(1);
+    const div = document.createElement("div");
+    div.className = "flex items-center justify-between";
+    div.innerHTML = `<span class="flex items-center gap-2"><span class="platform-dot" style="background:${donutColors[i]};"></span>${l}</span><span class="num"><b>${fmtKc(donutData[i])}</b> <span style="color:var(--fm-mute);font-size:.8em;">· ${pct}%</span></span>`;
+    legend.appendChild(div);
+  });
+
+  // MATRIX tabulka: platforma × měsíc
+  renderMatrix(months, platforms);
+
+  // Per-měsíc karty (každý měsíc kvartálu zvlášť)
+  const grid = document.getElementById("monthsGrid");
+  grid.innerHTML = "";
+  months.forEach(m=>{
+    const monthRows = rows.filter(r=> r.obdobi === m);
+    if(!monthRows.length) return;
+    const totalSp = monthRows.reduce((a,r)=> a + spendDisplay(r.platforma, r.spend), 0);
+    const totalIn = monthRows.reduce((a,r)=> a + invoiceFor(r.platforma, r.spend), 0);
+    const card = document.createElement("div");
+    card.className = "month-card";
+    const rowsHtml = monthRows.map(r=>{
+      const p = config.platformy[r.platforma] || {};
+      return `
+        <tr>
+          <td><span class="platform-dot" style="background:${p.color || '#888'};"></span>${r.platforma}</td>
+          <td class="right num">${fmtKc(spendDisplay(r.platforma, r.spend))}</td>
+          <td class="right" style="color:var(--fm-mute);">${rateLabel(r.platforma)}</td>
+          <td class="right num" style="color: var(--fm-red); font-weight:600;">${fmtKc(invoiceFor(r.platforma, r.spend))}</td>
+        </tr>`;
+    }).join("");
+    card.innerHTML = `
+      <h4>${monthLabel[m]} ${m.split("-")[0]}</h4>
+      <div class="sub">${m}</div>
+      <table class="platform-table">
+        <thead>
+          <tr><th>Platforma</th><th>Spend</th><th>Sazba</th><th>Klientovi</th></tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot>
+          <tr>
+            <td>Celkem</td>
+            <td class="right num">${fmtKc(totalSp)}</td>
+            <td></td>
+            <td class="right num" style="color: var(--fm-red);">${fmtKc(totalIn)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    `;
+    grid.appendChild(card);
+  });
+
+}
+
+/* ========== PDF GENERATOR ========== */
+/* Embedded DejaVu Sans subset (~99 KB inline base64).
+   Plná podpora české diakritiky. Zero network dependency. */
+const __FM_FONT_REGULAR_B64 = "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*REG*/";
+const __FM_FONT_BOLD_B64    = "/*BLD*/";
+
+function ensureCzechFont(doc){
+  doc.addFileToVFS("FMFont.ttf", __FM_FONT_REGULAR_B64);
+  doc.addFont("FMFont.ttf", "DejaVu", "normal");
+  doc.addFileToVFS("FMFont-Bold.ttf", __FM_FONT_BOLD_B64);
+  doc.addFont("FMFont-Bold.ttf", "DejaVu", "bold");
+  doc.setFont("DejaVu", "normal");
+}
+
+function generatePDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:"pt", format:"a4" });
+  ensureCzechFont(doc);
+  let months, periodLabel;
+  if(mode === "quarter"){
+    const period = document.getElementById("periodSelect").value;
+    months = periodMonths[period];
+    periodLabel = period.replace("-"," / ");
+  } else {
+    const m = document.getElementById("monthSelect").value;
+    months = [m];
+    periodLabel = monthLabel[m] + " " + m.split("-")[0];
+  }
+  const rows = rowsForMonths(months);
+  const totalSpend = rows.reduce((a,r)=>a + spendDisplay(r.platforma, r.spend), 0);
+  const totalInvoice = rows.reduce((a,r)=>a + invoiceFor(r.platforma, r.spend), 0);
+
+  // Header pruh — FM Black s červenou tečkou
+  doc.setFillColor(0, 0, 0);
+  doc.rect(0,0,595,72,"F");
+  doc.setTextColor(255,255,255); doc.setFontSize(16);
+  doc.text("FILIPESMEDIA", 40, 36);
+  doc.setFillColor(220, 38, 38);
+  doc.circle(150, 30, 2.5, "F");
+  doc.setFontSize(11); doc.setTextColor(255,255,255);
+  doc.text(mode==="quarter" ? "Vyúčtování kreditů" : "Měsíční přehled kreditů", 170, 36);
+  doc.setFontSize(9.5); doc.setTextColor(180,180,180);
+  doc.text(`Klient: ${config.klient}  ·  Období: ${periodLabel}  ·  Vygenerováno: ${new Date().toLocaleDateString("cs-CZ")}`, 40, 56);
+
+  // Souhrn box — světle červené tint
+  doc.setFillColor(254, 242, 242); doc.rect(40, 132, 515, 62, "F");
+  doc.setDrawColor(220, 38, 38); doc.setLineWidth(1.2);
+  doc.line(40, 132, 40, 194);
+  doc.setFontSize(9); doc.setTextColor(110,110,110);
+  doc.text("SPEND (čistá útrata)", 55, 150);
+  doc.text("AGENTURNÍ POPLATEK", 220, 150);
+  doc.text("K FAKTURACI CELKEM", 400, 150);
+  doc.setFontSize(15); doc.setTextColor(26,26,26);
+  doc.text(fmtKc(totalSpend), 55, 175);
+  doc.text(fmtKc(totalInvoice-totalSpend), 220, 175);
+  doc.setTextColor(220, 38, 38);
+  doc.text(fmtKc(totalInvoice), 400, 175);
+
+  let y = 220;
+  // Pro každý měsíc samostatná tabulka (kvartál = 3 tabulky)
+  months.forEach((m, idx)=>{
+    const monthRows = rows.filter(r=> r.obdobi === m);
+    if(!monthRows.length) return;
+    const totalSp = monthRows.reduce((a,r)=> a + spendDisplay(r.platforma, r.spend), 0);
+    const totalIn = monthRows.reduce((a,r)=> a + invoiceFor(r.platforma, r.spend), 0);
+
+    doc.setFontSize(11); doc.setTextColor(20,20,20);
+    doc.text(monthLabel[m] + " " + m.split("-")[0], 40, y);
+    y += 6;
+
+    const body = monthRows.map(r=>[
+      r.platforma,
+      fmtKc(spendDisplay(r.platforma, r.spend)),
+      rateLabel(r.platforma),
+      fmtKc(invoiceFor(r.platforma, r.spend))
+    ]);
+    body.push([{content:"Celkem za měsíc", styles:{fontStyle:"bold"}}, {content: fmtKc(totalSp), styles:{fontStyle:"bold"}}, "", {content: fmtKc(totalIn), styles:{fontStyle:"bold", textColor:[220,38,38]}}]);
+
+    doc.autoTable({
+      startY: y + 4,
+      head: [["Platforma","Spend","Sazba","K fakturaci"]],
+      body: body,
+      theme:"grid",
+      styles:{ font:"DejaVu", fontStyle:"normal" },
+      headStyles:{ font:"DejaVu", fontStyle:"bold", fillColor:[0,0,0], textColor:[255,255,255], fontSize:9 },
+      bodyStyles:{ font:"DejaVu", fontSize:9.5, textColor:[26,26,26] },
+      alternateRowStyles:{ fillColor:[250,250,250] },
+      columnStyles:{ 1:{halign:"right"}, 2:{halign:"right"}, 3:{halign:"right"} },
+      margin:{ left:40, right:40 }
+    });
+    y = doc.lastAutoTable.finalY + 14;
+  });
+
+  // Kvartální souhrn — FM Black s červeným totálem
+  if(mode === "quarter"){
+    doc.setFillColor(0, 0, 0); doc.rect(40, y, 515, 32, "F");
+    doc.setFontSize(11); doc.setTextColor(255,255,255);
+    doc.text("CELKEM ZA KVARTÁL", 55, y+20);
+    doc.setTextColor(255, 100, 100); doc.setFontSize(13);
+    doc.text(fmtKc(totalInvoice), 510, y+20, {align:"right"});
+    y += 42;
+  }
+
+  // Sazby info
+  doc.setFontSize(9); doc.setTextColor(80,80,80);
+  doc.text("Sazby a smluvní ujednání", 40, y);
+  y += 12;
+  doc.text("Google Ads, Sklik, Meta: spend × 1,10 (10 % agenturní poplatek za zprávu kreditu)", 40, y);
+  doc.text("Mergado: fixní paušál " + mergadoValue() + " Kč / měsíc", 40, y+12);
+  doc.text("Fakturace: 1× za kvartál souhrnně, splatnost 14 dní", 40, y+24);
+
+  if(mode === "quarter"){
+    doc.setFontSize(10); doc.setTextColor(40,40,40);
+    doc.text("Schválil za klienta:", 40, y+66);
+    doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
+    doc.line(40, y+90, 250, y+90);
+    doc.setFontSize(8.5); doc.setTextColor(120,120,120);
+    doc.text("datum a podpis", 40, y+103);
+    doc.setFontSize(10); doc.setTextColor(40,40,40);
+    doc.text("Schválil za agenturu:", 320, y+66);
+    doc.line(320, y+90, 530, y+90);
+    doc.setFontSize(8.5); doc.setTextColor(120,120,120);
+    doc.text("Filipesmedia s.r.o.", 320, y+103);
+  } else {
+    doc.setFontSize(9); doc.setTextColor(120,120,120);
+    doc.text("Toto je informativní měsíční přehled. Fakturace probíhá 1× za kvartál souhrnně.", 40, y+48);
+    doc.text("Souhrnný kvartální podklad ke schválení obdržíte na začátku následujícího kvartálu.", 40, y+62);
+  }
+
+  // FM brand footer
+  doc.setDrawColor(0,0,0); doc.setLineWidth(0.5);
+  doc.line(40, 800, 555, 800);
+  doc.setFontSize(8); doc.setTextColor(120,120,120);
+  doc.text("FILIPESMEDIA", 40, 815);
+  doc.setFillColor(220,38,38); doc.circle(98, 813, 1.5, "F");
+  doc.text("Generated by Filipesmedia · OS-FM modul Kredity · " + new Date().toLocaleDateString("cs-CZ"), 110, 815);
+  doc.text("www.filipesmedia.cz", 555, 815, {align:"right"});
+
+  doc.save(`kredity_${periodLabel.replace(/[\s\/]/g,"-")}.pdf`);
+}
+
+/* ========== EMAIL DRAFT ========== */
+function prepareEmail(){
+  let months, periodLabel;
+  if(mode === "quarter"){
+    const period = document.getElementById("periodSelect").value;
+    months = periodMonths[period];
+    periodLabel = period.replace("-"," / ");
+  } else {
+    const m = document.getElementById("monthSelect").value;
+    months = [m];
+    periodLabel = monthLabel[m] + " " + m.split("-")[0];
+  }
+  const rows = rowsForMonths(months);
+  const totalInvoice = rows.reduce((a,r)=>a+invoiceFor(r.platforma,r.spend),0);
+
+  let subject, body;
+  if(mode === "quarter"){
+    subject = `Vyúčtování kreditů ${periodLabel} – Šrouby.net (${fmtKc(totalInvoice)})`;
+    body =
+`Dobrý den,
+
+posílám souhrnné vyúčtování kreditů reklamních platforem za uplynulý kvartál (${periodLabel}).
+
+Celkem k fakturaci: ${fmtKc(totalInvoice)}
+Rozpad po platformách a měsících najdete v přiloženém PDF.
+
+Prosím o schválení odpovědí na tento email nebo přímo v náhledu na odkazu níže.
+[odkaz na schvalovací stránku]
+
+Po vašem schválení vystavíme fakturu se splatností 14 dnů.
+
+Mějte se hezky,
+${config.manazer}
+Filipesmedia
+`;
+  } else {
+    subject = `Měsíční přehled kreditů ${periodLabel} – Šrouby.net (${fmtKc(totalInvoice)})`;
+    body =
+`Dobrý den,
+
+posílám informativní měsíční přehled čerpání kreditů na reklamních platformách za ${periodLabel}.
+
+Celkem za měsíc: ${fmtKc(totalInvoice)}
+Rozpad po platformách najdete v přiloženém PDF.
+
+Toto je pouze informativní přehled — fakturace probíhá souhrnně 1× za kvartál podle smlouvy. Souhrnný kvartální podklad ke schválení vám pošlu na začátku následujícího kvartálu.
+
+Kdyby cokoliv nesedělo nebo jste měl dotazy, dejte vědět.
+
+Mějte se hezky,
+${config.manazer}
+Filipesmedia
+`;
+  }
+  window.location.href = `mailto:${config.klient_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/* ========== MATRIX tabulka: platforma × měsíc ========== */
+function renderMatrix(months, platformsInRows){
+  // Aktivní platformy = ty co mají alespoň jeden řádek + Mergado vždy
+  const allPlatforms = [...new Set([...platformsInRows, "Mergado"])];
+  // Pořadí dle config.platformy
+  const ordered = Object.keys(config.platformy).filter(p => allPlatforms.includes(p));
+
+  const thead = document.getElementById("matrixHead");
+  const tbody = document.getElementById("matrixBody");
+  const tfoot = document.getElementById("matrixFoot");
+
+  // HEAD
+  let head = `<tr>
+    <th style="text-align:left;">Platforma</th>`;
+  months.forEach(m=>{
+    head += `<th>${monthLabel[m]} ${m.split("-")[0].slice(2)}</th>`;
+  });
+  head += `<th style="border-left:2px solid var(--fm-grey-90);">${mode==="quarter"?"Kvartál spend":"Měsíc spend"}</th>
+    <th>K fakturaci</th>
+    <th style="border-left:1px solid var(--fm-line);">Rozpočet ${mode==="quarter"?"(Q)":"(měs.)"}</th>
+    <th>Čerpáno %</th>
+  </tr>`;
+  thead.innerHTML = head;
+
+  // BODY
+  let body = "";
+  let totalSp = 0, totalIn = 0, totalBudget = 0;
+  ordered.forEach(pl=>{
+    const p = config.platformy[pl] || {};
+    let rowSp = 0, rowIn = 0;
+    let cells = "";
+    months.forEach(m=>{
+      let sp;
+      if(pl === "Mergado"){
+        sp = mergadoValue();
+      } else {
+        const r = spends.find(s=> s.platforma===pl && s.obdobi===m);
+        sp = r ? r.spend : 0;
+      }
+      const inv = invoiceFor(pl, sp);
+      rowSp += sp;
+      rowIn += inv;
+      cells += `<td class="right num">${sp > 0 ? fmtKc(sp) : '<span style="color:#c0c0c0;">—</span>'}</td>`;
+    });
+    const budgetMonthly = budgetFor(pl);
+    const budgetPeriod = budgetMonthly * months.length;
+    const pct = budgetPeriod > 0 ? (rowSp / budgetPeriod) * 100 : 0;
+    const pctColor = pct >= 100 ? "var(--fm-red)" : pct >= 90 ? "#e8a500" : "var(--fm-grey-90)";
+    const pctText = budgetPeriod > 0 ? `${pct.toFixed(0)} %` : '<span style="color:#c0c0c0;">—</span>';
+
+    totalSp += rowSp;
+    totalIn += rowIn;
+    totalBudget += budgetPeriod;
+
+    body += `<tr>
+      <td><span class="platform-dot" style="background:${p.color||'#888'};"></span><b>${pl}</b></td>
+      ${cells}
+      <td class="right num" style="border-left:2px solid var(--fm-grey-90); font-weight:600;">${fmtKc(rowSp)}</td>
+      <td class="right num" style="color:var(--fm-red); font-weight:600;">${fmtKc(rowIn)}</td>
+      <td class="right num" style="border-left:1px solid var(--fm-line); color:var(--fm-mute);">${budgetPeriod>0?fmtKc(budgetPeriod):'<span style=\"color:#c0c0c0;\">—</span>'}</td>
+      <td class="right num" style="color:${pctColor}; font-weight:600;">${pctText}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = body;
+
+  // FOOT
+  const totalPct = totalBudget > 0 ? (totalSp / totalBudget) * 100 : 0;
+  const totalPctColor = totalPct >= 100 ? "var(--fm-red)" : totalPct >= 90 ? "#e8a500" : "var(--fm-grey-90)";
+  let foot = `<tr>
+    <td>CELKEM</td>`;
+  // Per-month totals
+  months.forEach(m=>{
+    let s = 0;
+    ordered.forEach(pl=>{
+      if(pl === "Mergado") s += mergadoValue();
+      else {
+        const r = spends.find(x=> x.platforma===pl && x.obdobi===m);
+        if(r) s += r.spend;
+      }
+    });
+    foot += `<td class="right num">${fmtKc(s)}</td>`;
+  });
+  foot += `<td class="right num" style="border-left:2px solid var(--fm-grey-90);">${fmtKc(totalSp)}</td>
+    <td class="right num" style="color:var(--fm-red);">${fmtKc(totalIn)}</td>
+    <td class="right num" style="border-left:1px solid var(--fm-line); color:var(--fm-mute);">${totalBudget>0?fmtKc(totalBudget):"—"}</td>
+    <td class="right num" style="color:${totalPctColor};">${totalBudget>0?totalPct.toFixed(0)+" %":"—"}</td>
+  </tr>`;
+  tfoot.innerHTML = foot;
+}
+
+/* ========== Konfigurátor ========== */
+function renderConfigurator(){
+  const grid = document.getElementById("configGrid");
+  grid.innerHTML = "";
+
+  // Rozpočty per platforma
+  Object.keys(config.platformy).forEach(pl=>{
+    const p = config.platformy[pl];
+    const val = budgets[pl] != null ? budgets[pl] : 0;
+    const isFixed = p.sazba === "fixed";
+    const label = isFixed ? "fix Kč / měsíc" : "Kč / měsíc (kredit)";
+    const item = document.createElement("div");
+    item.className = "card p-3";
+    item.innerHTML = `
+      <div class="flex items-center gap-2 mb-2">
+        <span class="platform-dot" style="background:${p.color};"></span>
+        <span style="font-weight:600; font-size:.88rem;">${pl}</span>
+        <span class="pill" style="background: var(--fm-grey-10); color: var(--fm-mute); margin-left:auto; font-size:.65rem;">rozpočet</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <input class="merg-input num" type="number" min="0" step="100" value="${val}" data-budget="${pl}" />
+        <span class="text-xs" style="color:var(--fm-mute);">${label}</span>
+      </div>
+      <div class="text-xs mt-1" style="color:var(--fm-mute);">Default: ${fmtKc(defaultBudgets[pl] || 0)}</div>
+    `;
+    grid.appendChild(item);
+  });
+
+  // Agenturní práce (správa kampaní) — z faktury
+  Object.keys(agencyWork).forEach(key=>{
+    const val = agencyWork[key];
+    const item = document.createElement("div");
+    item.className = "card p-3";
+    item.style.borderColor = "var(--fm-grey-90)";
+    item.innerHTML = `
+      <div class="flex items-center gap-2 mb-2">
+        <span class="platform-dot" style="background: var(--fm-grey-90);"></span>
+        <span style="font-weight:600; font-size:.88rem;">${key}</span>
+        <span class="pill" style="background:#fff5f5; color:var(--fm-red); margin-left:auto; font-size:.65rem;">práce</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <input class="merg-input num" type="number" min="0" step="100" value="${val}" data-agency="${key}" />
+        <span class="text-xs" style="color:var(--fm-mute);">Kč / měsíc (práce)</span>
+      </div>
+      <div class="text-xs mt-1" style="color:var(--fm-mute);">Default: ${fmtKc(defaultAgencyWork[key] || 0)}</div>
+    `;
+    grid.appendChild(item);
+  });
+
+  // Wire up inputs
+  grid.querySelectorAll("input[data-budget]").forEach(inp=>{
+    inp.addEventListener("input", e=>{
+      const pl = e.target.dataset.budget;
+      const v = parseFloat(e.target.value);
+      budgets[pl] = isNaN(v) ? 0 : v;
+      render();
+    });
+  });
+  grid.querySelectorAll("input[data-agency]").forEach(inp=>{
+    inp.addEventListener("input", e=>{
+      const key = e.target.dataset.agency;
+      const v = parseFloat(e.target.value);
+      agencyWork[key] = isNaN(v) ? 0 : v;
+      render();
+    });
+  });
+}
+
+function resetBudgets(){
+  budgets = { ...defaultBudgets };
+  agencyWork = { ...defaultAgencyWork };
+  renderConfigurator();
+  render();
+}
+
+document.getElementById("periodSelect").addEventListener("change", render);
+document.getElementById("monthSelect").addEventListener("change", render);
+renderConfigurator();
+render();
+</script>
+</body>
+</html>
