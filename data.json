@@ -1,0 +1,23 @@
+{
+  "lastSync": "2026-05-11T00:00:00.000Z",
+  "spends": [
+    {"platforma": "Google Ads", "obdobi": "2025-10", "spend": 9617.67},
+    {"platforma": "Google Ads", "obdobi": "2025-11", "spend": 9580.11},
+    {"platforma": "Google Ads", "obdobi": "2025-12", "spend": 9740.29},
+    {"platforma": "Sklik",      "obdobi": "2025-10", "spend": 3339.52},
+    {"platforma": "Sklik",      "obdobi": "2025-11", "spend": 1954.07},
+    {"platforma": "Sklik",      "obdobi": "2025-12", "spend": 3262.34},
+    {"platforma": "Google Ads", "obdobi": "2026-01", "spend": 9746.12},
+    {"platforma": "Google Ads", "obdobi": "2026-02", "spend": 9698.50},
+    {"platforma": "Google Ads", "obdobi": "2026-03", "spend": 9857.05},
+    {"platforma": "Sklik",      "obdobi": "2026-01", "spend": 1677.93},
+    {"platforma": "Sklik",      "obdobi": "2026-02", "spend": 4068.59},
+    {"platforma": "Sklik",      "obdobi": "2026-03", "spend": 3895.11},
+    {"platforma": "Google Ads", "obdobi": "2026-04", "spend": 9785.24},
+    {"platforma": "Google Ads", "obdobi": "2026-05", "spend": 3450.63},
+    {"platforma": "Sklik",      "obdobi": "2026-04", "spend": 3948.67},
+    {"platforma": "Sklik",      "obdobi": "2026-05", "spend":  774.63},
+    {"platforma": "Meta",       "obdobi": "2026-04", "spend": 3051.97},
+    {"platforma": "Meta",       "obdobi": "2026-05", "spend": 4819.29}
+  ]
+}

@@ -252,29 +252,8 @@ let agencyWork = { ...defaultAgencyWork };
 /* =========================================================
    DATA — reálné agregace z cost importu (Google Sheets)
    ========================================================= */
-const spends = [
-  // Q4 / 2025
-  { platforma:"Google Ads", obdobi:"2025-10", spend:9617.67 },
-  { platforma:"Google Ads", obdobi:"2025-11", spend:9580.11 },
-  { platforma:"Google Ads", obdobi:"2025-12", spend:9740.29 },
-  { platforma:"Sklik",      obdobi:"2025-10", spend:3339.52 },
-  { platforma:"Sklik",      obdobi:"2025-11", spend:1954.07 },
-  { platforma:"Sklik",      obdobi:"2025-12", spend:3262.34 },
-  // Q1 / 2026 (uzavřený, fakturováno)
-  { platforma:"Google Ads", obdobi:"2026-01", spend:9746.12 },
-  { platforma:"Google Ads", obdobi:"2026-02", spend:9698.50 },
-  { platforma:"Google Ads", obdobi:"2026-03", spend:9857.05 },
-  { platforma:"Sklik",      obdobi:"2026-01", spend:1677.93 },
-  { platforma:"Sklik",      obdobi:"2026-02", spend:4068.59 },
-  { platforma:"Sklik",      obdobi:"2026-03", spend:3895.11 },
-  // Q2 / 2026 (probíhá)
-  { platforma:"Google Ads", obdobi:"2026-04", spend:9785.24 },
-  { platforma:"Google Ads", obdobi:"2026-05", spend:3450.63 },   // partial k 11.5.
-  { platforma:"Sklik",      obdobi:"2026-04", spend:3948.67 },
-  { platforma:"Sklik",      obdobi:"2026-05", spend:774.63 },    // partial
-  { platforma:"Meta",       obdobi:"2026-04", spend:3051.97 },   // od dubna 2026
-  { platforma:"Meta",       obdobi:"2026-05", spend:4819.29 },   // partial
-];
+/* Data se načítají z data.json při startu stránky (viz loadData níže) */
+let spends = [];
 
 const periodMonths = {
   "Q4-2025":["2025-10","2025-11","2025-12"],
@@ -804,8 +783,25 @@ function resetBudgets(){
 
 document.getElementById("periodSelect").addEventListener("change", render);
 document.getElementById("monthSelect").addEventListener("change", render);
-renderConfigurator();
-render();
+
+async function loadData() {
+  try {
+    const res = await fetch('data.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    spends = json.spends || [];
+    if (json.lastSync) {
+      document.getElementById('lastSync').textContent =
+        new Date(json.lastSync).toLocaleDateString('cs-CZ');
+    }
+  } catch(e) {
+    console.warn('Nelze načíst data.json:', e);
+    document.getElementById('lastSync').textContent = 'chyba načítání';
+  }
+  renderConfigurator();
+  render();
+}
+loadData();
 </script>
 </body>
 </html>
