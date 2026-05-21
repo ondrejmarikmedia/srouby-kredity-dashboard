@@ -1,0 +1,13 @@
+web,date,source,medium,cost,clicks,impressions,campaign_name,campaign_id,conversions,conversions_value
+srouby.net,2026-01-01,google,cpc,106.62,19,1329,FM-PMAXPi-Spojovací materiál-Šrouby.net,21730748796,0,0
+srouby.net,2026-01-01,google,cpc,28.23,2,19,FM-VYH-Brand-Šrouby.net,21740936551,0,0
+srouby.net,2026-01-01,google,cpc,44.58,7,203,FM-VYH-DSA-Šrouby.net,21745222936,0,0
+srouby.net,2026-01-01,google,cpc,121.6,19,232,FM-VYH-Služby-Šrouby.net,21724596452,0,0
+srouby.net,2026-01-01,seznam,cpc,34.29,7,300,FM-ZI-Srouby.net,6314738,0,0
+srouby.net,2026-01-01,seznam,cpc,8.3,1,25,FM-VYHL-Služby-Šrouby.net,6335433,0,0
+srouby.net,2026-01-01,seznam,cpc,5.7,1,310,FM - dRMKT - mobil - Šrouby.net,6336961,0,0
+srouby.net,2026-01-01,seznam,cpc,0,0,42,FM - dRMKT - desktop - Šrouby.net,6336982,0,0
+# ... ~5000 dalších řádků daily per campaign
+# Modul agreguje na:
+# Q1/2026 → Google Ads: 29 301,67 Kč | Sklik: 9 641,63 Kč | Mergado: 1 758 Kč (fix)
+# Markup 1,10 → klientovi 32 232 + 10 606 + 1 758 = 44 596 Kč
