@@ -1,23 +1,220 @@
 {
-  "lastSync": "2026-05-11T00:00:00.000Z",
+  "lastSync": "2026-05-22T12:29:02.608Z",
   "spends": [
-    {"platforma": "Google Ads", "obdobi": "2025-10", "spend": 9617.67},
-    {"platforma": "Google Ads", "obdobi": "2025-11", "spend": 9580.11},
-    {"platforma": "Google Ads", "obdobi": "2025-12", "spend": 9740.29},
-    {"platforma": "Sklik",      "obdobi": "2025-10", "spend": 3339.52},
-    {"platforma": "Sklik",      "obdobi": "2025-11", "spend": 1954.07},
-    {"platforma": "Sklik",      "obdobi": "2025-12", "spend": 3262.34},
-    {"platforma": "Google Ads", "obdobi": "2026-01", "spend": 9746.12},
-    {"platforma": "Google Ads", "obdobi": "2026-02", "spend": 9698.50},
-    {"platforma": "Google Ads", "obdobi": "2026-03", "spend": 9857.05},
-    {"platforma": "Sklik",      "obdobi": "2026-01", "spend": 1677.93},
-    {"platforma": "Sklik",      "obdobi": "2026-02", "spend": 4068.59},
-    {"platforma": "Sklik",      "obdobi": "2026-03", "spend": 3895.11},
-    {"platforma": "Google Ads", "obdobi": "2026-04", "spend": 9785.24},
-    {"platforma": "Google Ads", "obdobi": "2026-05", "spend": 3450.63},
-    {"platforma": "Sklik",      "obdobi": "2026-04", "spend": 3948.67},
-    {"platforma": "Sklik",      "obdobi": "2026-05", "spend":  774.63},
-    {"platforma": "Meta",       "obdobi": "2026-04", "spend": 3051.97},
-    {"platforma": "Meta",       "obdobi": "2026-05", "spend": 4819.29}
+    {
+      "platforma": "Sklik",
+      "obdobi": "2024-09",
+      "spend": 9.56
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2024-10",
+      "spend": 7102.72
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2024-10",
+      "spend": 865.69
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2024-11",
+      "spend": 8259.76
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2024-11",
+      "spend": 2698.81
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2024-12",
+      "spend": 8230.84
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2024-12",
+      "spend": 2112.85
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-01",
+      "spend": 8219.93
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-01",
+      "spend": 3520.8
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-02",
+      "spend": 8146.2
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-02",
+      "spend": 3434.52
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-03",
+      "spend": 8750.79
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-03",
+      "spend": 4244.81
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-04",
+      "spend": 9691.77
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-04",
+      "spend": 3444.93
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-05",
+      "spend": 9617.29
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-05",
+      "spend": 4008.7
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-06",
+      "spend": 9932.19
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-06",
+      "spend": 3698.08
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-07",
+      "spend": 9682.45
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-07",
+      "spend": 3385.84
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-08",
+      "spend": 9675.42
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-08",
+      "spend": 3260.05
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-09",
+      "spend": 10042.16
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-09",
+      "spend": 3401.68
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-10",
+      "spend": 9617.67
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-10",
+      "spend": 3339.52
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-11",
+      "spend": 9580.11
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-11",
+      "spend": 1954.07
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2025-12",
+      "spend": 9740.29
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2025-12",
+      "spend": 3262.34
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2026-01",
+      "spend": 9746.12
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2026-01",
+      "spend": 1677.93
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2026-02",
+      "spend": 9698.5
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2026-02",
+      "spend": 4068.59
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2026-03",
+      "spend": 9857.05
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2026-03",
+      "spend": 3895.11
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2026-04",
+      "spend": 9785.24
+    },
+    {
+      "platforma": "Meta",
+      "obdobi": "2026-04",
+      "spend": 3051.97
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2026-04",
+      "spend": 3948.67
+    },
+    {
+      "platforma": "Google Ads",
+      "obdobi": "2026-05",
+      "spend": 6946.49
+    },
+    {
+      "platforma": "Meta",
+      "obdobi": "2026-05",
+      "spend": 8103.25
+    },
+    {
+      "platforma": "Sklik",
+      "obdobi": "2026-05",
+      "spend": 1933.31
+    }
   ]
 }
