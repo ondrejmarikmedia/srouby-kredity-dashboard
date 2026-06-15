@@ -138,7 +138,7 @@
     <div class="card p-4" style="border:2px solid var(--fm-red); background: var(--fm-red-bg);">
       <div class="text-xs uppercase tracking-widest" style="color: var(--fm-red); font-weight:600;">K fakturaci celkem</div>
       <div class="text-2xl font-semibold num mt-2 mono kpi-accent" id="kpiInvoice">— Kč</div>
-      <div class="text-xs mt-1" style="color:var(--fm-mute)">Kredity + markup + Mergado + práce</div>
+      <div class="text-xs mt-1" style="color:var(--fm-mute)" id="kpiInvoiceSub">Kredity + markup + Mergado + práce</div>
     </div>
     <div class="card p-4">
       <div class="text-xs uppercase tracking-widest" style="color:var(--fm-mute); font-weight:600;">Měsíců v období</div>
@@ -201,6 +201,16 @@
     <div class="mt-3 text-xs" style="color:var(--fm-mute);">
       Defaulty Q2/26: <b>Rozpočty</b> Google+Sklik 15 000 Kč/m (split 75/25 = 11 000 / 4 000), Meta 9 000 Kč/m, Mergado 586 Kč/m fix. <b>Agenturní práce</b> Google+Sklik 12 400 Kč/m, Meta 3 000 Kč/m.
     </div>
+    <div class="mt-4 pt-4" style="border-top:1px solid var(--fm-line);">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <div class="text-sm font-semibold">Extra kampaně · vlastní rozpočty</div>
+          <div class="text-xs" style="color:var(--fm-mute);">Navyšují rozpočet platformy v tabulce — ovlivňují sloupce Rozpočet, Zbývá a % čerpání.</div>
+        </div>
+        <button class="btn btn-ghost text-xs" onclick="addExtraCampaign()">+ Přidat kampaň</button>
+      </div>
+      <div id="extraCampaignsContainer"></div>
+    </div>
   </section>
 
   <footer class="pb-10 pt-2 mt-4 flex items-center justify-between text-xs" style="color:var(--fm-mute); border-top:1px solid var(--fm-line);">
@@ -239,6 +249,8 @@ const defaultBudgets = {
   "Mergado":    586,
 };
 let budgets = { ...defaultBudgets };
+let markupPercent = 0.10;  // konfigurovatelný markup (default 10 %)
+let extraCampaigns = [];   // [{ id, name, platforma, budget }]
 
 /* Agenturní práce / správa kampaní (měsíční sazby).
    "3 měsíce správy kampaní" = 37 200 / 3 = 12 400 Kč/m (Google+Sklik)
@@ -273,7 +285,7 @@ function agencyTotal(months){ return agencyMonthlyTotal() * months; }
 function invoiceFor(platforma, spend){
   const p = config.platformy[platforma];
   if(!p) return spend;
-  if(p.sazba === "percent") return Math.round(spend * (1 + p.value));
+  if(p.sazba === "percent") return Math.round(spend * (1 + markupPercent));
   if(p.sazba === "fixed"){
     if(platforma === "Mergado") return mergadoValue();
     return p.value;
@@ -288,7 +300,7 @@ function spendDisplay(platforma, spend){
 function rateLabel(platforma){
   const p = config.platformy[platforma];
   if(!p) return "—";
-  if(p.sazba === "percent") return "× " + (1+p.value).toFixed(2);
+  if(p.sazba === "percent") return "× " + (1+markupPercent).toFixed(2);
   if(p.sazba === "fixed")   return "fix";
   return "—";
 }
@@ -335,17 +347,19 @@ function render(){
   const months = currentMonths();
   const rows = rowsForMonths(months);
 
-  // KPI
-  const totalSpend = rows.reduce((a,r)=> a + spendDisplay(r.platforma, r.spend), 0);
-  const totalCreditsInvoice = rows.reduce((a,r)=> a + invoiceFor(r.platforma, r.spend), 0);
-  const totalFee = totalCreditsInvoice - totalSpend;
+  // KPI — Mergado počítáme zvlášť, nezahrnujeme do spend/markup
+  const mainRows = rows.filter(r => r.platforma !== "Mergado");
+  const mergadoTotalInvoice = mergadoValue() * months.length;
+  const totalSpend = mainRows.reduce((a,r) => a + r.spend, 0);
+  const totalMarkup = Math.round(totalSpend * markupPercent);
   const totalAgency = agencyTotal(months.length);
-  const totalInvoice = totalCreditsInvoice + totalAgency;
+  const totalInvoice = totalSpend + totalMarkup + totalAgency + mergadoTotalInvoice;
   document.getElementById("kpiSpend").textContent = fmtKc(totalSpend);
-  document.getElementById("kpiFee").textContent = fmtKc(totalFee);
+  document.getElementById("kpiFee").textContent = fmtKc(totalMarkup);
   document.getElementById("kpiAgency").textContent = fmtKc(totalAgency);
   document.getElementById("kpiAgencySub").textContent = `${fmtKc(agencyMonthlyTotal())} / měsíc × ${months.length}`;
   document.getElementById("kpiInvoice").textContent = fmtKc(totalInvoice);
+  document.getElementById("kpiInvoiceSub").textContent = `z toho Mergado ${fmtKc(mergadoTotalInvoice)} (fix)`;
   document.getElementById("kpiMonths").textContent = months.length;
   document.getElementById("kpiMonthsSub").textContent = months.map(m=>monthLabel[m] || m).join(" · ");
 
@@ -373,28 +387,30 @@ function render(){
   });
 
   // MATRIX tabulka: platforma × měsíc
-  renderMatrix(months, platforms);
+  renderMatrix(months);
 
   // Per-měsíc karty (každý měsíc kvartálu zvlášť)
   const grid = document.getElementById("monthsGrid");
   grid.innerHTML = "";
   months.forEach(m=>{
-    const monthRows = rows.filter(r=> r.obdobi === m);
-    if(!monthRows.length) return;
-    const totalSp = monthRows.reduce((a,r)=> a + spendDisplay(r.platforma, r.spend), 0);
-    const totalIn = monthRows.reduce((a,r)=> a + invoiceFor(r.platforma, r.spend), 0);
+    const monthRows = rows.filter(r=> r.obdobi === m && r.platforma !== "Mergado");
+    if(!monthRows.length && !spends.some(s=> s.obdobi === m)) return;
+    const totalSp = monthRows.reduce((a,r)=> a + r.spend, 0);
+    const totalMarkupM = Math.round(totalSp * markupPercent);
+    const totalIn = totalSp + totalMarkupM;
     const card = document.createElement("div");
     card.className = "month-card";
-    const rowsHtml = monthRows.map(r=>{
+    const rowsHtml = monthRows.length ? monthRows.map(r=>{
       const p = config.platformy[r.platforma] || {};
+      const inv = invoiceFor(r.platforma, r.spend);
       return `
         <tr>
           <td><span class="platform-dot" style="background:${p.color || '#888'};"></span>${r.platforma}</td>
-          <td class="right num">${fmtKc(spendDisplay(r.platforma, r.spend))}</td>
+          <td class="right num">${fmtKc(r.spend)}</td>
           <td class="right" style="color:var(--fm-mute);">${rateLabel(r.platforma)}</td>
-          <td class="right num" style="color: var(--fm-red); font-weight:600;">${fmtKc(invoiceFor(r.platforma, r.spend))}</td>
+          <td class="right num" style="color:var(--fm-red); font-weight:600;">${fmtKc(inv)}</td>
         </tr>`;
-    }).join("");
+    }).join("") : `<tr><td colspan="4" style="color:var(--fm-mute); font-size:.8rem; text-align:center; padding:.5rem 0;">Zatím žádná data — projekce z rozpočtu</td></tr>`;
     card.innerHTML = `
       <h4>${monthLabel[m]} ${m.split("-")[0]}</h4>
       <div class="sub">${m}</div>
@@ -405,13 +421,16 @@ function render(){
         <tbody>${rowsHtml}</tbody>
         <tfoot>
           <tr>
-            <td>Celkem</td>
-            <td class="right num">${fmtKc(totalSp)}</td>
+            <td>Celkem (bez Mergado)</td>
+            <td class="right num">${totalSp > 0 ? fmtKc(totalSp) : '—'}</td>
             <td></td>
-            <td class="right num" style="color: var(--fm-red);">${fmtKc(totalIn)}</td>
+            <td class="right num" style="color:var(--fm-red);">${totalIn > 0 ? fmtKc(totalIn) : '—'}</td>
           </tr>
         </tfoot>
       </table>
+      <div style="font-size:.72rem; color:var(--fm-mute); margin-top:.5rem; padding-top:.4rem; border-top:1px solid var(--fm-grey-10);">
+        <span class="platform-dot" style="background:#1A1A1A;"></span>Mergado fix: <b>${fmtKc(mergadoValue())}</b> · mimo hlavní fakturu
+      </div>
     `;
     grid.appendChild(card);
   });
@@ -616,92 +635,97 @@ Filipesmedia
   window.location.href = `mailto:${config.klient_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-/* ========== MATRIX tabulka: platforma × měsíc ========== */
-function renderMatrix(months, platformsInRows){
-  // Aktivní platformy = ty co mají alespoň jeden řádek + Mergado vždy
-  const allPlatforms = [...new Set([...platformsInRows, "Mergado"])];
-  // Pořadí dle config.platformy
-  const ordered = Object.keys(config.platformy).filter(p => allPlatforms.includes(p));
-
+/* ========== MATRIX tabulka: platforma × měsíc (bez Mergado) ========== */
+function renderMatrix(months){
+  const mainPlatforms = Object.keys(config.platformy).filter(p => p !== "Mergado");
   const thead = document.getElementById("matrixHead");
   const tbody = document.getElementById("matrixBody");
   const tfoot = document.getElementById("matrixFoot");
+  const markupLabel = "Markup (" + Math.round(markupPercent * 100) + " %)";
+  const periodLabel = mode === "quarter" ? "Kvartál" : "Měsíc";
 
   // HEAD
-  let head = `<tr>
-    <th style="text-align:left;">Platforma</th>`;
-  months.forEach(m=>{
+  let head = `<tr><th style="text-align:left;">Platforma</th>`;
+  months.forEach(m => {
     head += `<th>${monthLabel[m]} ${m.split("-")[0].slice(2)}</th>`;
   });
-  head += `<th style="border-left:2px solid var(--fm-grey-90);">${mode==="quarter"?"Kvartál spend":"Měsíc spend"}</th>
+  head += `
+    <th style="border-left:2px solid var(--fm-grey-90);">Spend ${periodLabel}</th>
+    <th style="background:var(--fm-grey-10);">Rozpočet</th>
+    <th>Zbývá</th>
+    <th style="border-left:1px solid var(--fm-line); color:var(--fm-mute);">${markupLabel}</th>
     <th>K fakturaci</th>
-    <th style="border-left:1px solid var(--fm-line);">Rozpočet ${mode==="quarter"?"(Q)":"(měs.)"}</th>
-    <th>Čerpáno %</th>
+    <th style="border-left:1px solid var(--fm-line);">Čerpáno</th>
   </tr>`;
   thead.innerHTML = head;
 
   // BODY
   let body = "";
-  let totalSp = 0, totalIn = 0, totalBudget = 0;
-  ordered.forEach(pl=>{
+  let gSp = 0, gBudget = 0, gMarkup = 0, gIn = 0;
+
+  mainPlatforms.forEach(pl => {
     const p = config.platformy[pl] || {};
-    let rowSp = 0, rowIn = 0;
+    let rowSp = 0;
     let cells = "";
-    months.forEach(m=>{
-      let sp;
-      if(pl === "Mergado"){
-        sp = mergadoValue();
-      } else {
-        const r = spends.find(s=> s.platforma===pl && s.obdobi===m);
-        sp = r ? r.spend : 0;
-      }
-      const inv = invoiceFor(pl, sp);
+    months.forEach(m => {
+      const r = spends.find(s => s.platforma === pl && s.obdobi === m);
+      const sp = r ? r.spend : 0;
       rowSp += sp;
-      rowIn += inv;
       cells += `<td class="right num">${sp > 0 ? fmtKc(sp) : '<span style="color:#c0c0c0;">—</span>'}</td>`;
     });
-    const budgetMonthly = budgetFor(pl);
+
+    const baseBudget = budgetFor(pl);
+    const extraBudget = extraCampaigns.filter(c => c.platforma === pl).reduce((a,c) => a + (Number(c.budget)||0), 0);
+    const budgetMonthly = baseBudget + extraBudget;
     const budgetPeriod = budgetMonthly * months.length;
+    const markup = Math.round(rowSp * markupPercent);
+    const rowIn = rowSp + markup;
+    const zbyvá = budgetPeriod - rowSp;
     const pct = budgetPeriod > 0 ? (rowSp / budgetPeriod) * 100 : 0;
     const pctColor = pct >= 100 ? "var(--fm-red)" : pct >= 90 ? "#e8a500" : "var(--fm-grey-90)";
-    const pctText = budgetPeriod > 0 ? `${pct.toFixed(0)} %` : '<span style="color:#c0c0c0;">—</span>';
+    const pctText = budgetPeriod > 0 ? `${pct.toFixed(0)} %` : '<span style="color:#c0c0c0;">—</span>';
+    const zbColor = zbyvá < 0 ? "var(--fm-red)" : zbyvá < budgetPeriod * 0.1 ? "#e8a500" : "var(--fm-grey-90)";
 
-    totalSp += rowSp;
-    totalIn += rowIn;
-    totalBudget += budgetPeriod;
+    gSp += rowSp; gBudget += budgetPeriod; gMarkup += markup; gIn += rowIn;
 
     body += `<tr>
       <td><span class="platform-dot" style="background:${p.color||'#888'};"></span><b>${pl}</b></td>
       ${cells}
-      <td class="right num" style="border-left:2px solid var(--fm-grey-90); font-weight:600;">${fmtKc(rowSp)}</td>
-      <td class="right num" style="color:var(--fm-red); font-weight:600;">${fmtKc(rowIn)}</td>
-      <td class="right num" style="border-left:1px solid var(--fm-line); color:var(--fm-mute);">${budgetPeriod>0?fmtKc(budgetPeriod):'<span style=\"color:#c0c0c0;\">—</span>'}</td>
-      <td class="right num" style="color:${pctColor}; font-weight:600;">${pctText}</td>
+      <td class="right num" style="border-left:2px solid var(--fm-grey-90); font-weight:600;">${rowSp > 0 ? fmtKc(rowSp) : '<span style="color:#c0c0c0;">—</span>'}</td>
+      <td class="right num" style="background:var(--fm-grey-10); color:var(--fm-mute);">${budgetPeriod > 0 ? fmtKc(budgetPeriod) : '<span style="color:#c0c0c0;">—</span>'}</td>
+      <td class="right num" style="color:${zbColor}; font-weight:600;">${budgetPeriod > 0 ? fmtKc(zbyvá) : '<span style="color:#c0c0c0;">—</span>'}</td>
+      <td class="right num" style="border-left:1px solid var(--fm-line); color:var(--fm-mute);">${rowSp > 0 ? fmtKc(markup) : '<span style="color:#c0c0c0;">—</span>'}</td>
+      <td class="right num" style="color:var(--fm-red); font-weight:600;">${rowSp > 0 ? fmtKc(rowIn) : '<span style="color:#c0c0c0;">—</span>'}</td>
+      <td class="right num" style="border-left:1px solid var(--fm-line); color:${pctColor}; font-weight:600;">${pctText}</td>
     </tr>`;
   });
   tbody.innerHTML = body;
 
   // FOOT
-  const totalPct = totalBudget > 0 ? (totalSp / totalBudget) * 100 : 0;
-  const totalPctColor = totalPct >= 100 ? "var(--fm-red)" : totalPct >= 90 ? "#e8a500" : "var(--fm-grey-90)";
-  let foot = `<tr>
-    <td>CELKEM</td>`;
-  // Per-month totals
-  months.forEach(m=>{
+  const gZbyvá = gBudget - gSp;
+  const gPct = gBudget > 0 ? (gSp / gBudget) * 100 : 0;
+  const gPctColor = gPct >= 100 ? "var(--fm-red)" : gPct >= 90 ? "#e8a500" : "var(--fm-grey-90)";
+  const gZbColor = gZbyvá < 0 ? "var(--fm-red)" : "var(--fm-grey-90)";
+
+  let foot = `<tr><td><b>CELKEM</b> (bez Mergado)</td>`;
+  months.forEach(m => {
     let s = 0;
-    ordered.forEach(pl=>{
-      if(pl === "Mergado") s += mergadoValue();
-      else {
-        const r = spends.find(x=> x.platforma===pl && x.obdobi===m);
-        if(r) s += r.spend;
-      }
-    });
-    foot += `<td class="right num">${fmtKc(s)}</td>`;
+    mainPlatforms.forEach(pl => { const r = spends.find(x => x.platforma === pl && x.obdobi === m); if(r) s += r.spend; });
+    foot += `<td class="right num">${s > 0 ? fmtKc(s) : '<span style="color:#c0c0c0;">—</span>'}</td>`;
   });
-  foot += `<td class="right num" style="border-left:2px solid var(--fm-grey-90);">${fmtKc(totalSp)}</td>
-    <td class="right num" style="color:var(--fm-red);">${fmtKc(totalIn)}</td>
-    <td class="right num" style="border-left:1px solid var(--fm-line); color:var(--fm-mute);">${totalBudget>0?fmtKc(totalBudget):"—"}</td>
-    <td class="right num" style="color:${totalPctColor};">${totalBudget>0?totalPct.toFixed(0)+" %":"—"}</td>
+  foot += `
+    <td class="right num" style="border-left:2px solid var(--fm-grey-90);">${fmtKc(gSp)}</td>
+    <td class="right num" style="background:var(--fm-grey-10); color:var(--fm-mute);">${gBudget > 0 ? fmtKc(gBudget) : "—"}</td>
+    <td class="right num" style="color:${gZbColor};">${gBudget > 0 ? fmtKc(gZbyvá) : "—"}</td>
+    <td class="right num" style="border-left:1px solid var(--fm-line); color:var(--fm-mute);">${fmtKc(gMarkup)}</td>
+    <td class="right num" style="color:var(--fm-red);">${fmtKc(gIn)}</td>
+    <td class="right num" style="border-left:1px solid var(--fm-line); color:${gPctColor};">${gBudget > 0 ? gPct.toFixed(0) + " %" : "—"}</td>
+  </tr>
+  <tr>
+    <td colspan="${months.length + 7}" style="font-size:.75rem; color:var(--fm-mute); padding:.35rem .4rem 0;">
+      <span class="platform-dot" style="background:#1A1A1A;"></span>
+      <b>Mergado</b> — fixní paušál ${fmtKc(mergadoValue())}/měs. · za období ${fmtKc(mergadoValue() * months.length)} · účtováno mimo hlavní fakturu · viz koláčový graf níže
+    </td>
   </tr>`;
   tfoot.innerHTML = foot;
 }
@@ -755,6 +779,24 @@ function renderConfigurator(){
     grid.appendChild(item);
   });
 
+  // Markup % card
+  const markupCard = document.createElement("div");
+  markupCard.className = "card p-3";
+  markupCard.style.borderColor = "var(--fm-grey-90)";
+  markupCard.innerHTML = `
+    <div class="flex items-center gap-2 mb-2">
+      <span class="platform-dot" style="background:var(--fm-grey-90);"></span>
+      <span style="font-weight:600; font-size:.88rem;">Markup %</span>
+      <span class="pill" style="background:#fff5f5; color:var(--fm-red); margin-left:auto; font-size:.65rem;">sazba</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <input class="merg-input num" type="number" min="0" max="100" step="1" value="${Math.round(markupPercent * 100)}" id="markupInput" />
+      <span class="text-xs" style="color:var(--fm-mute);">% z kreditu</span>
+    </div>
+    <div class="text-xs mt-1" style="color:var(--fm-mute);">Default: 10 %</div>
+  `;
+  grid.appendChild(markupCard);
+
   // Wire up inputs
   grid.querySelectorAll("input[data-budget]").forEach(inp=>{
     inp.addEventListener("input", e=>{
@@ -772,6 +814,59 @@ function renderConfigurator(){
       render();
     });
   });
+  document.getElementById("markupInput")?.addEventListener("input", e=>{
+    const v = parseFloat(e.target.value);
+    markupPercent = isNaN(v) ? 0.10 : v / 100;
+    render();
+  });
+
+  // Extra kampaně
+  renderExtraCampaigns();
+}
+
+function renderExtraCampaigns(){
+  const container = document.getElementById("extraCampaignsContainer");
+  if(!container) return;
+  container.innerHTML = "";
+  if(!extraCampaigns.length){
+    container.innerHTML = `<div class="text-xs" style="color:var(--fm-mute); padding:.3rem 0;">Žádné extra kampaně. Přidej kampaň pro navýšení rozpočtu platformy.</div>`;
+    return;
+  }
+  extraCampaigns.forEach(c=>{
+    const row = document.createElement("div");
+    row.className = "flex items-center gap-2 flex-wrap";
+    row.innerHTML = `
+      <input type="text" value="${c.name}" placeholder="Název kampaně" style="flex:1; min-width:120px; padding:.3rem .5rem; font-size:.84rem;" data-ec-name="${c.id}" />
+      <select data-ec-pl="${c.id}" style="padding:.3rem .5rem; font-size:.84rem;">
+        ${Object.keys(config.platformy).filter(p=>p!=="Mergado").map(p=>`<option${p===c.platforma?" selected":""}>${p}</option>`).join("")}
+      </select>
+      <input type="number" min="0" step="100" value="${c.budget}" placeholder="Kč/měs." style="width:100px; padding:.3rem .5rem; font-size:.84rem; text-align:right;" data-ec-budget="${c.id}" />
+      <span class="text-xs" style="color:var(--fm-mute);">Kč/měs.</span>
+      <button onclick="removeExtraCampaign(${c.id})" style="font-size:.8rem; color:var(--fm-red); background:none; border:none; cursor:pointer; padding:0 .3rem;">✕</button>
+    `;
+    container.appendChild(row);
+  });
+  container.querySelectorAll("[data-ec-name]").forEach(inp=>{
+    inp.addEventListener("input", e=>{ const c=extraCampaigns.find(x=>x.id==e.target.dataset.ecName); if(c) c.name=e.target.value; });
+  });
+  container.querySelectorAll("[data-ec-pl]").forEach(sel=>{
+    sel.addEventListener("change", e=>{ const c=extraCampaigns.find(x=>x.id==e.target.dataset.ecPl); if(c){ c.platforma=e.target.value; render(); } });
+  });
+  container.querySelectorAll("[data-ec-budget]").forEach(inp=>{
+    inp.addEventListener("input", e=>{ const c=extraCampaigns.find(x=>x.id==e.target.dataset.ecBudget); if(c){ c.budget=parseFloat(e.target.value)||0; render(); } });
+  });
+}
+
+function addExtraCampaign(){
+  extraCampaigns.push({ id: Date.now(), name: "Nová kampaň", platforma: "Google Ads", budget: 0 });
+  renderExtraCampaigns();
+  render();
+}
+
+function removeExtraCampaign(id){
+  extraCampaigns = extraCampaigns.filter(c => c.id !== id);
+  renderExtraCampaigns();
+  render();
 }
 
 function resetBudgets(){
