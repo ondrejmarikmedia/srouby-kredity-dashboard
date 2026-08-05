@@ -619,10 +619,10 @@ function doRolloverMonth(pl, fromMonth, toMonth) {
   const zb   = mbud - sp;
   if (zb <= 0) { showToast('Žádné zbývající kredity k přenesení', 'info'); return; }
   if (!rollover[pl]) rollover[pl] = {};
-  rollover[pl][toMonth] = (rollover[pl][toMonth] || 0) + zb;
+  rollover[pl][toMonth] = Math.round((rollover[pl][toMonth] || 0) + zb);
   saveConfigToLocal();
   render();
-  showToast(`${fmtKc(zb)} přeneseno do ${getMonthLabel(toMonth)}`, 'success');
+  showToast(`${fmtKc(Math.round(zb))} přeneseno do ${getMonthLabel(toMonth)}`, 'success');
 }
 
 function doRolloverQuarter() {
@@ -645,7 +645,7 @@ function doRolloverQuarter() {
     const zb   = budP - rowSp;
     if (zb > 0) {
       if (!rollover[pl]) rollover[pl] = {};
-      rollover[pl][nextFirst] = (rollover[pl][nextFirst] || 0) + zb;
+      rollover[pl][nextFirst] = Math.round((rollover[pl][nextFirst] || 0) + zb);
       any = true;
     }
   });
