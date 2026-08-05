@@ -995,7 +995,7 @@ function renderMatrix(months){
       <td class="right num budget-cell${isOverridden ? ' overridden' : ''}" id="${cellId}" style="background:var(--fm-grey-10); color:var(--fm-mute); vertical-align:top;"
         onclick="openBudgetEdit('${pl}','${cellId}')" title="Klikni pro editaci měsíčního rozpočtu">
         ${budgetPeriod > 0 ? fmtKc(budgetPeriod) : '<span style="color:#c0c0c0;">—</span>'}${isOverridden ? ' <sup style="color:var(--fm-red);">*</sup>' : ''}
-        ${isOverridden ? `<br><span style="font-size:.6rem;cursor:pointer;color:var(--fm-red);" onclick="event.stopPropagation();clearBudgetOverride('${pl}',${JSON.stringify(months)})">↺ reset</span>` : ''}
+        ${isOverridden ? `<br><span style="font-size:.6rem;cursor:pointer;color:var(--fm-red);" onclick="event.stopPropagation();clearBudgetOverride('${pl}',${JSON.stringify(months).replace(/"/g,"'")})">↺ reset</span>` : ''}
       </td>
       <td class="right num" style="color:${zbColor}; font-weight:600; vertical-align:top;">${budgetPeriod > 0 ? fmtKc(zbyvá) : '<span style="color:#c0c0c0;">—</span>'}</td>
       <td class="right num" style="border-left:1px solid var(--fm-line); color:var(--fm-mute); vertical-align:top;">${rowSp > 0 ? fmtKc(markup) : '<span style="color:#c0c0c0;">—</span>'}</td>
