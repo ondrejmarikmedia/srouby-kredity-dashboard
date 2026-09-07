@@ -94,14 +94,6 @@
   .budget-cell:hover::after { content:"✏"; position:absolute; top:3px; right:3px; font-size:.6rem; opacity:.5; }
   .budget-cell.overridden { text-decoration:underline dotted; }
 
-  /* Rollover arrow */
-  .rollover-btn {
-    display:inline-block; margin-top:2px; font-size:.65rem; cursor:pointer;
-    color:#16a34a; white-space:nowrap; line-height:1.2;
-    border:1px solid #16a34a; border-radius:3px; padding:1px 4px;
-  }
-  .rollover-btn:hover { background:#dcfce7; }
-  .rollover-badge { font-size:.65rem; color:#16a34a; display:block; margin-top:1px; }
 
   /* Direct billing row */
   .direct-row td { background:#fafafa !important; }
@@ -226,7 +218,6 @@
         <div class="text-xs" style="color:var(--fm-mute)">Řádky = platformy · Sloupce = měsíce v kvartálu · kliknutím na Rozpočet lze upravit</div>
       </div>
       <div class="flex items-center gap-2">
-        <button class="btn btn-ghost text-xs" onclick="doRolloverQuarter()" title="Přenést zbývající kredity do příštího kvartálu">→ Rollover Q+1</button>
         <div class="text-xs pill" style="background: var(--fm-grey-10); color: var(--fm-grey-90);">Referenční rozpočty</div>
       </div>
     </div>
@@ -924,7 +915,6 @@ function renderMatrix(months){
   const tfoot      = document.getElementById("matrixFoot");
   const markupLabel = "Markup (" + Math.round(markupPercent * 100) + " %)";
   const periodLabel = mode === "quarter" ? "Kvartál" : "Měsíc";
-  const nowM        = new Date().toISOString().slice(0, 7); // "YYYY-MM"
 
   // HEAD
   let head = `<tr><th style="text-align:left;">Platforma</th>`;
@@ -949,28 +939,11 @@ function renderMatrix(months){
     let rowSp    = 0;
     let cells    = "";
 
-    months.forEach((m, mi) => {
-      const r   = spends.find(s => s.platforma === pl && s.obdobi === m);
-      const sp  = r ? r.spend : 0;
-      rowSp    += sp;
-
-      const mBud   = effectiveBudget(pl, m);
-      const mZb    = mBud - sp;
-      const isPast = m <= nowM;
-      const nextM  = months[mi + 1];
-      const rv     = (rollover[pl] && rollover[pl][m]) ? rollover[pl][m] : 0;
-
-      let rolloverBtn = '';
-      if (isPast && mZb > 0 && nextM) {
-        rolloverBtn = `<br><span class="rollover-btn" onclick="doRolloverMonth('${pl}','${m}','${nextM}')"
-          title="Přenést ${fmtKc(mZb)} zbývajících kreditů do ${getMonthLabel(nextM)}">→ ${fmtKc(mZb)}</span>`;
-      }
-      const rvBadge = rv > 0 ? `<br><span class="rollover-badge">+${fmtKc(rv)} přeneseno</span>` : '';
-
-      cells += `<td class="right num" style="vertical-align:top;">
-        ${sp > 0 ? fmtKc(sp) : '<span style="color:#c0c0c0;">—</span>'}
-        ${rolloverBtn}${rvBadge}
-      </td>`;
+    months.forEach(m => {
+      const r  = spends.find(s => s.platforma === pl && s.obdobi === m);
+      const sp = r ? r.spend : 0;
+      rowSp   += sp;
+      cells   += `<td class="right num">${sp > 0 ? fmtKc(sp) : '<span style="color:#c0c0c0;">—</span>'}</td>`;
     });
 
     const budgetPeriod = effectiveBudgetPeriod(pl, months);
