@@ -1,5 +1,5 @@
 {
-  "lastSync": "2026-11-03T01:56:56.124Z",
+  "lastSync": "2026-11-04T01:56:57.201Z",
   "spends": [
     {
       "platforma": "Sklik",
@@ -279,12 +279,12 @@
     {
       "platforma": "Google Ads",
       "obdobi": "2026-11",
-      "spend": 850.48
+      "spend": 1277.42
     },
     {
       "platforma": "Sklik",
       "obdobi": "2026-11",
-      "spend": 185.93
+      "spend": 248.36
     }
   ]
 }
